@@ -7,6 +7,7 @@ using System.Numerics;
 using System.Runtime.InteropServices.WindowsRuntime;
 using System.Runtime.Remoting.Messaging;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Timers;
 
@@ -103,43 +104,23 @@ namespace Simulater
                     Entities.Add( ______ );
                 }
             }
-            List<Entity> _____ = new List<Entity>() { };
-            foreach (Entity entity in Entities)
+            for (int i = 0; i < Entities.Count; i++)
             {
-                Console.Title = $"Processing:{Entities.FindIndex( entity.IsSame )}/{Entities.Count}";
-                Entity __ = new Entity();
-                entity.CopyTo(out __);
-                __.hunger += rng.Next(3);
-                _____.Add( entity );
-            }
-            Entities.Clear();
-            Entities.AddRange( _____ );
-            List<Entity> ___ = new List<Entity>() { };
-            foreach (Entity entity in Entities)
-            {
-                Console.Title = $"Processing:{Entities.FindIndex( entity.IsSame )}/{Entities.Count}";
-                Entity __ = new Entity();
-                entity.CopyTo( out __ );
-                __.hunger--;
-                if (__.hunger <= 0) { __.isDead = true; }
-                ___.Add(__);
+                Entities[i] = ETick(Entities.ElementAt( i ));
             }
             int DeathOnTick = Entities.RemoveAll( new Predicate<Entity>( IsDead ) );
-            Entities.Clear();
-            Entities.AddRange(___);
-            List<Entity> _ = new List<Entity>() { };
-            foreach (Entity entity in Entities)
+            int _ = Entities.Count;
+            for (int i = 0; i < _; i++)
             {
-                Console.Title = $"Processing:{Entities.FindIndex( entity.IsSame )}/{Entities.Count}";
-                _.Add(new Entity(entity.entityType,entity.power + rng.Next(-2,2), rng.Next( 1, 3 ) ));
+                Console.Title = $"Processing:{i}/{_}";
+                if (rng.Next(4) == 0) { Entities.Add( new Entity( Entities.ElementAt( i ).entityType, Entities.ElementAt( i ).power + rng.Next( -2, 2 ), rng.Next( 1, 3 ) ) ); }
             }
-            Entities.AddRange(_);
-            foreach (Entity entity in Entities)
+            for (int i = 0; i < Entities.Count; i++)
             {
-                Console.Title = $"Calculating:{Entities.FindIndex( entity.IsSame )}/{Entities.Count}";
-                if (entity.entityType == EntityType.Savior) { Saviors++; }
-                if(entity.entityType == EntityType.Killer) { Killers++; }
-                if(entity.entityType == EntityType.Coward) { Cowards++; }
+                Console.Title = $"Processing:{i}/{_}";
+                if (Entities.ElementAt( i ).entityType == EntityType.Savior) { Saviors++; }
+                else if (Entities.ElementAt( i ).entityType == EntityType.Killer) { Killers++; }
+                else if (Entities.ElementAt( i ).entityType == EntityType.Coward) { Cowards++; }
             }
             TotalDeaths += DeathOnTick;
             AverageDeaths = TotalDeaths / (MainTicker.CallbackCount + 1);
@@ -147,6 +128,16 @@ namespace Simulater
             Console.Clear();
             Console.WriteLine($"Ticks:{MainTicker.CallbackCount}\n\nLiving:\nCowards:{Cowards}\nSaviors:{Saviors}\nKillers:{Killers}\nTotal:{Entities.Count}\n\nDead:\nThis tick:{DeathOnTick}\nTotal:{TotalDeaths}\nAverage:{AverageDeaths}\n\nTick took:{sw.ElapsedMilliseconds}ms");
             return true;
+        }
+        static Entity ETick(Entity entity)
+        {
+            Entity _ = new Entity();
+            entity.CopyTo(out _ );
+            Random rng = new Random();
+            entity.hunger--;
+            if (entity.hunger <= 0) { entity.isDead = true; }
+            entity.hunger += rng.Next(-2 , 3 );
+            return _;
         }
         static void GenerateEntities(int amount)
         {
@@ -186,14 +177,14 @@ namespace Simulater
     }
     internal struct Ticker
     {
-        private Timer ticker;
-        private Func<bool> CallbackFunc;
+        private readonly System.Timers.Timer ticker;
+        private readonly Func<bool> CallbackFunc;
         public BigInteger CallbackCount;
         public Ticker(Func<bool> callbackfunc,double interval)
         {
             CallbackCount = 0;
             CallbackFunc = callbackfunc;
-            ticker = new Timer( interval )
+            ticker = new System.Timers.Timer( interval )
             {
                 AutoReset = true
             };
