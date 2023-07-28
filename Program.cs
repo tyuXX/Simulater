@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Numerics;
@@ -31,11 +32,13 @@ namespace Simulater
         }
         static bool Tick()
         {
+            Stopwatch sw = Stopwatch.StartNew();
             int Killers = 0;
             int Saviors = 0;
             int Cowards = 0;
             for (int i = 0; i < Entities.Count/3; i++)
             {
+                Console.Title = $"Processing:{i}/{Entities.Count/3}";
                 Entity ______ = new Entity();
                 int __ = rng.Next( Entities.Count );
                 while (Entities.ElementAt(__).isDead)
@@ -100,10 +103,10 @@ namespace Simulater
                     Entities.Add( ______ );
                 }
             }
-            int DeathOnTick = Entities.RemoveAll( new Predicate<Entity>( IsDead ) );
             List<Entity> _____ = new List<Entity>() { };
             foreach (Entity entity in Entities)
             {
+                Console.Title = $"Processing:{Entities.FindIndex( entity.IsSame )}/{Entities.Count}";
                 Entity __ = new Entity();
                 entity.CopyTo(out __);
                 __.hunger += rng.Next(3);
@@ -114,30 +117,35 @@ namespace Simulater
             List<Entity> ___ = new List<Entity>() { };
             foreach (Entity entity in Entities)
             {
+                Console.Title = $"Processing:{Entities.FindIndex( entity.IsSame )}/{Entities.Count}";
                 Entity __ = new Entity();
                 entity.CopyTo( out __ );
                 __.hunger--;
                 if (__.hunger <= 0) { __.isDead = true; }
                 ___.Add(__);
             }
+            int DeathOnTick = Entities.RemoveAll( new Predicate<Entity>( IsDead ) );
             Entities.Clear();
             Entities.AddRange(___);
             List<Entity> _ = new List<Entity>() { };
             foreach (Entity entity in Entities)
             {
+                Console.Title = $"Processing:{Entities.FindIndex( entity.IsSame )}/{Entities.Count}";
                 _.Add(new Entity(entity.entityType,entity.power + rng.Next(-2,2), rng.Next( 1, 3 ) ));
             }
             Entities.AddRange(_);
             foreach (Entity entity in Entities)
             {
-                if(entity.entityType == EntityType.Savior) { Saviors++; }
+                Console.Title = $"Calculating:{Entities.FindIndex( entity.IsSame )}/{Entities.Count}";
+                if (entity.entityType == EntityType.Savior) { Saviors++; }
                 if(entity.entityType == EntityType.Killer) { Killers++; }
                 if(entity.entityType == EntityType.Coward) { Cowards++; }
             }
             TotalDeaths += DeathOnTick;
-            AverageDeaths = TotalDeaths / (MainTicker.CC + 1);
+            AverageDeaths = TotalDeaths / (MainTicker.CallbackCount + 1);
+            sw.Stop();
             Console.Clear();
-            Console.WriteLine($"Ticks:{MainTicker.CC}\n\nLiving:\nCowards:{Cowards}\nSaviors:{Saviors}\nKillers:{Killers}\nTotal:{Entities.Count}\n\nDead:\nThis tick:{DeathOnTick}\nTotal:{TotalDeaths}\nAverage:{AverageDeaths}");
+            Console.WriteLine($"Ticks:{MainTicker.CallbackCount}\n\nLiving:\nCowards:{Cowards}\nSaviors:{Saviors}\nKillers:{Killers}\nTotal:{Entities.Count}\n\nDead:\nThis tick:{DeathOnTick}\nTotal:{TotalDeaths}\nAverage:{AverageDeaths}\n\nTick took:{sw.ElapsedMilliseconds}ms");
             return true;
         }
         static void GenerateEntities(int amount)
@@ -180,8 +188,7 @@ namespace Simulater
     {
         private Timer ticker;
         private Func<bool> CallbackFunc;
-        private BigInteger CallbackCount;
-        public BigInteger CC { get => CallbackCount; }
+        public BigInteger CallbackCount;
         public Ticker(Func<bool> callbackfunc,double interval)
         {
             CallbackCount = 0;
@@ -226,6 +233,10 @@ namespace Simulater
             Entity _ = new Entity(entityType,power,hunger);
             _.UUID = UUID;
             entity = _;
+        }
+        public bool IsSame(Entity entity)
+        {
+            return Equals(entity);
         }
     }
     internal enum EntityType
